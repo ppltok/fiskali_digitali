@@ -1,26 +1,166 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+
+/* ── פיסקלי דיגיטלי · "fiscal broadsheet" theme ─────────────────────────────
+   Warm paper + ink editorial palette with a fiscal-teal accent.
+   Light is the default; dark follows the system and a manual toggle.      */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #f6f1e7;
+  --surface: #fdfaf3;
+  --surface-raised: #ffffff;
+  --ink: #1d1a14;
+  --ink-soft: #52493b;
+  --ink-faint: #8b8070;
+  --hairline: #e3d9c6;
+  --hairline-strong: #cfc2a9;
+  --accent: #0c6b5a;
+  --accent-soft: #e0efe9;
+  --accent-strong: #084d41;
+  --amber: #b45309;
+  --amber-soft: #f7ead8;
+  --negative: #a33324;
+  --chart-1: #1baf7a;
+  --chart-2: #eb6834;
+  --chart-3: #2a78d6;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --grain-opacity: 0.35;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root[data-theme='dark'] {
+  --paper: #161410;
+  --surface: #1e1b15;
+  --surface-raised: #26221a;
+  --ink: #ece5d4;
+  --ink-soft: #b3a988;
+  --ink-faint: #7d745f;
+  --hairline: #2f2a1f;
+  --hairline-strong: #453e2d;
+  --accent: #3fa88f;
+  --accent-soft: #12352c;
+  --accent-strong: #6cc4ab;
+  --amber: #d98324;
+  --amber-soft: #33270f;
+  --negative: #d06a58;
+  --chart-1: #199e70;
+  --chart-2: #d95926;
+  --chart-3: #3987e5;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --grain-opacity: 0.25;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme='light']) {
+    --paper: #161410;
+    --surface: #1e1b15;
+    --surface-raised: #26221a;
+    --ink: #ece5d4;
+    --ink-soft: #b3a988;
+    --ink-faint: #7d745f;
+    --hairline: #2f2a1f;
+    --hairline-strong: #453e2d;
+    --accent: #3fa88f;
+    --accent-soft: #12352c;
+    --accent-strong: #6cc4ab;
+    --amber: #d98324;
+    --amber-soft: #33270f;
+    --negative: #d06a58;
+    --chart-1: #199e70;
+    --chart-2: #d95926;
+    --chart-3: #3987e5;
+    --chart-4: #c98500;
+    --chart-5: #d55181;
+    --grain-opacity: 0.25;
   }
 }
 
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-strong: var(--accent-strong);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+  --color-negative: var(--negative);
+  --font-display: var(--font-suez), serif;
+  --font-body: var(--font-heebo), sans-serif;
+  --font-figures: var(--font-plex-mono), monospace;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-heebo), sans-serif;
+  /* Subtle paper grain — pure CSS, no assets. */
+  background-image: radial-gradient(
+      ellipse at 20% -10%,
+      color-mix(in oklab, var(--accent) 4%, transparent),
+      transparent 55%
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      color-mix(in oklab, var(--ink) 1.2%, transparent) 3px
+    );
+  background-attachment: fixed;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent) 25%, transparent);
+}
+
+/* Figures: shekel amounts get tabular mono digits. */
+.figure {
+  font-family: var(--font-plex-mono), monospace;
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Streaming caret at the end of an in-progress assistant message. */
+.streaming-caret::after {
+  content: '';
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-inline-start: 0.15em;
+  background: var(--accent);
+  vertical-align: text-bottom;
+  animation: caret-blink 0.9s steps(2) infinite;
+}
+
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise-in {
+  animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Thin, unobtrusive scrollbars that match the paper. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--hairline-strong) transparent;
 }

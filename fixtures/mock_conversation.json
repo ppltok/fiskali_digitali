@@ -1,0 +1,52 @@
+[
+  {
+    "kind": "tool",
+    "tool_name": "DatasetInfo",
+    "dynamic": true,
+    "input": { "dataset": "budget_items_data" },
+    "output": "schema: year, code, title, net_allocated, net_revised, net_executed …",
+    "delay_ms": 400
+  },
+  {
+    "kind": "tool",
+    "tool_name": "DatasetDBQuery",
+    "dynamic": true,
+    "input": {
+      "dataset": "budget_items_data",
+      "query": "SELECT year, SUM(net_allocated) AS total FROM raw_budget WHERE title LIKE '%חינוך%' AND char_length(code)=4 AND year BETWEEN 2021 AND 2025 GROUP BY year ORDER BY year LIMIT 10"
+    },
+    "output": "{\"total\": 5, \"rows\": [{\"year\": 2021, \"total\": 63855000000}, {\"year\": 2022, \"total\": 68420000000}, {\"year\": 2023, \"total\": 72130000000}, {\"year\": 2024, \"total\": 76890000000}, {\"year\": 2025, \"total\": 83904553000}]}",
+    "delay_ms": 500
+  },
+  {
+    "kind": "text",
+    "text": "תקציב משרד החינוך לשנת 2025 עומד על **83.9 מיליארד ₪** — עלייה של כ-9% לעומת 2024, והמשך מגמת גידול עקבית של חמש שנים.\n\n",
+    "delay_ms": 300
+  },
+  {
+    "kind": "tool",
+    "tool_name": "display_chart",
+    "input": {
+      "chart_type": "bar",
+      "title": "תקציב משרד החינוך, 2021–2025",
+      "x_key": "year",
+      "y_keys": ["total"],
+      "y_labels": ["תקציב מאושר"],
+      "rows": [
+        { "year": "2021", "total": 63855000000 },
+        { "year": "2022", "total": 68420000000 },
+        { "year": "2023", "total": 72130000000 },
+        { "year": "2024", "total": 76890000000 },
+        { "year": "2025", "total": 83904553000 }
+      ],
+      "footnote": "מקור: ספר התקציב, מפתח התקציב"
+    },
+    "output": { "ok": true },
+    "delay_ms": 400
+  },
+  {
+    "kind": "text",
+    "text": "בחמש השנים האחרונות גדל התקציב בכ-20 מיליארד ₪ במצטבר (31%+). מקור: ספר התקציב (budget_items_data), שנים 2021–2025.\n\nשאלות המשך שאולי יעניינו אותך:\n- כמה מהתקציב הזה בוצע בפועל?\n- איך זה מתחלק בין חינוך יסודי לעל-יסודי?\n- איך תקציב החינוך משתווה לתקציב הבריאות?",
+    "delay_ms": 200
+  }
+]
