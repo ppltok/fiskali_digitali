@@ -84,14 +84,24 @@ export async function POST(req: Request) {
     onFinish: async () => {
       await session?.close();
     },
-    onError: async () => {
+    onError: async ({ error }) => {
+      console.error('[chat] streamText error:', error);
       await session?.close();
     },
   });
 
   return result.toUIMessageStreamResponse({
     onError: (error) => {
-      const text = error instanceof Error ? error.message : String(error);
+      console.error('[chat] stream error:', error);
+      const err = error as { message?: string; code?: number; metadata?: { error_type?: string } };
+      const text = err?.message ?? String(error);
+      if (
+        err?.code === 502 ||
+        err?.metadata?.error_type === 'provider_unavailable' ||
+        text.includes('ResourceExhausted')
+      ) {
+        return 'השרתים החינמיים של מודל השפה עמוסים כרגע — זה קורה בשעות שיא. נסו שוב בעוד דקה-שתיים.';
+      }
       if (text.includes('429') || text.toLowerCase().includes('rate')) {
         return 'חרגנו ממכסת השאילתות החינמית להיום. נסו שוב מאוחר יותר, או הוסיפו מפתח OpenRouter משלכם בהגדרות.';
       }

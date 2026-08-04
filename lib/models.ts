@@ -10,6 +10,10 @@ export const MODEL_CHAIN = [
   'openai/gpt-oss-20b:free',
   'google/gemma-4-31b-it:free',
   'nvidia/nemotron-3-super-120b-a12b:free',
+  // Last resort: OpenRouter's auto-router picks any currently-available free
+  // model. Tool support isn't guaranteed there, but it beats a hard failure
+  // when every named model's free pool is saturated.
+  'openrouter/free',
 ];
 
 export function resolveModel(userKey?: string | null): LanguageModel {
