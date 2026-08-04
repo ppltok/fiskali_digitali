@@ -94,6 +94,7 @@ export default function ConversationSidebar({
                       onSelect(convo.id);
                       setOpen(false);
                     }}
+                    aria-label={convo.title}
                     className="min-w-0 flex-1 px-2 py-2 text-start"
                   >
                     <span className="block truncate text-sm text-ink-soft">{convo.title}</span>

@@ -10,15 +10,24 @@ import ChartRenderer from '@/components/charts/chart_renderer';
 import DataTable from '@/components/charts/data_table';
 import type { TableInput, FollowupsInput } from '@/lib/chart_tool';
 
-function FollowupChips({ questions, onAsk }: { questions: string[]; onAsk: (q: string) => void }) {
+function FollowupChips({
+  questions,
+  onAsk,
+  disabled,
+}: {
+  questions: string[];
+  onAsk: (q: string) => void;
+  disabled: boolean;
+}) {
   return (
     <div className="rise-in mt-4 flex flex-wrap gap-2">
       {questions.slice(0, 4).map((q) => (
         <button
           key={q}
           type="button"
+          disabled={disabled}
           onClick={() => onAsk(q)}
-          className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface px-3.5 py-1.5 text-[13px] text-ink-soft transition-all hover:-translate-y-px hover:border-accent hover:text-accent-strong"
+          className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface px-3.5 py-1.5 text-[13px] text-ink-soft transition-all hover:-translate-y-px hover:border-accent hover:text-accent-strong disabled:pointer-events-none disabled:opacity-50"
         >
           <MessageCircleQuestionMark className="size-3.5 text-accent" />
           {q}
@@ -138,7 +147,14 @@ function MessageBubble({
           if (part.state === 'output-available' || part.state === 'input-available') {
             const input = part.input as FollowupsInput;
             if (!Array.isArray(input?.questions)) return null;
-            return <FollowupChips key={part.toolCallId} questions={input.questions} onAsk={onAsk} />;
+            return (
+              <FollowupChips
+                key={part.toolCallId}
+                questions={input.questions}
+                onAsk={onAsk}
+                disabled={streaming}
+              />
+            );
           }
           return null;
         }

@@ -1,0 +1,130 @@
+{
+  "ranking": [
+    {
+      "model": "openai/gpt-oss-20b:free",
+      "score": 31.7,
+      "runs": 3,
+      "failed": 1
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "score": 0,
+      "runs": 3,
+      "failed": 2
+    },
+    {
+      "model": "google/gemma-4-31b-it:free",
+      "score": 0,
+      "runs": 3,
+      "failed": 3
+    }
+  ],
+  "scores": [
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "question": "כמה תקציב הוקצה למשרד החינוך בשנת 2025? ",
+      "steps": 0,
+      "tool_calls": 0,
+      "latency_ms": 3058,
+      "hebrew_ratio": 0,
+      "has_numbers": false,
+      "answer_chars": 0,
+      "error": "TypeError: Cannot use 'in' operator to search for 'content' in {\"content\":[{\"type\":\"text\",\"text\":\"{\\\"description\\\":\\\"סעיפי התקציב מספר תקציב המדינה.\\\\nהמידע הוא לכלל שנות התקציב מאז 1997 ועד 2026.\\\\n\\\\nאופן ביצוע שאילתות database:\\\\n- חיפוש סעיף תקציבי רק על פי קוד סעיף תקציבי.\\\\n- אם לא יודעים את ק",
+      "answer_preview": ""
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "question": "מהן חמש העמותות שקיבלו את סכומי התמיכה ה",
+      "steps": 1,
+      "tool_calls": 0,
+      "latency_ms": 600757,
+      "hebrew_ratio": 0,
+      "has_numbers": false,
+      "answer_chars": 0,
+      "answer_preview": ""
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
+      "question": "איך השתנה תקציב משרד הביטחון בין 2022 ל-",
+      "steps": 0,
+      "tool_calls": 0,
+      "latency_ms": 4725,
+      "hebrew_ratio": 0,
+      "has_numbers": false,
+      "answer_chars": 0,
+      "error": "TypeError: Cannot use 'in' operator to search for 'content' in {\"content\":[{\"type\":\"text\",\"text\":\"{\\\"description\\\":\\\"סעיפי התקציב מספר תקציב המדינה.\\\\nהמידע הוא לכלל שנות התקציב מאז 1997 ועד 2026.\\\\n\\\\nאופן ביצוע שאילתות database:\\\\n- חיפוש סעיף תקציבי רק על פי קוד סעיף תקציבי.\\\\n- אם לא יודעים את ק",
+      "answer_preview": ""
+    },
+    {
+      "model": "google/gemma-4-31b-it:free",
+      "question": "כמה תקציב הוקצה למשרד החינוך בשנת 2025? ",
+      "steps": 0,
+      "tool_calls": 0,
+      "latency_ms": 6641,
+      "hebrew_ratio": 0,
+      "has_numbers": false,
+      "answer_chars": 0,
+      "error": "AI_RetryError: Failed after 3 attempts. Last error: AI_APICallError: [Google AI Studio] google/gemma-4-31b-it:free is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations",
+      "answer_preview": ""
+    },
+    {
+      "model": "google/gemma-4-31b-it:free",
+      "question": "מהן חמש העמותות שקיבלו את סכומי התמיכה ה",
+      "steps": 0,
+      "tool_calls": 0,
+      "latency_ms": 6624,
+      "hebrew_ratio": 0,
+      "has_numbers": false,
+      "answer_chars": 0,
+      "error": "AI_RetryError: Failed after 3 attempts. Last error: AI_APICallError: [Google AI Studio] google/gemma-4-31b-it:free is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations",
+      "answer_preview": ""
+    },
+    {
+      "model": "google/gemma-4-31b-it:free",
+      "question": "איך השתנה תקציב משרד הביטחון בין 2022 ל-",
+      "steps": 0,
+      "tool_calls": 0,
+      "latency_ms": 7207,
+      "hebrew_ratio": 0,
+      "has_numbers": false,
+      "answer_chars": 0,
+      "error": "AI_RetryError: Failed after 3 attempts. Last error: AI_APICallError: [Google AI Studio] google/gemma-4-31b-it:free is temporarily rate-limited upstream. Please retry shortly, or add your own key to accumulate your rate limits: https://openrouter.ai/settings/integrations",
+      "answer_preview": ""
+    },
+    {
+      "model": "openai/gpt-oss-20b:free",
+      "question": "כמה תקציב הוקצה למשרד החינוך בשנת 2025? ",
+      "steps": 0,
+      "tool_calls": 0,
+      "latency_ms": 12123,
+      "hebrew_ratio": 0,
+      "has_numbers": false,
+      "answer_chars": 0,
+      "error": "TypeError: Cannot use 'in' operator to search for 'content' in {\"content\":[{\"type\":\"text\",\"text\":\"{\\\"description\\\":\\\"סעיפי התקציב מספר תקציב המדינה.\\\\nהמידע הוא לכלל שנות התקציב מאז 1997 ועד 2026.\\\\n\\\\nאופן ביצוע שאילתות database:\\\\n- חיפוש סעיף תקציבי רק על פי קוד סעיף תקציבי.\\\\n- אם לא יודעים את ק",
+      "answer_preview": ""
+    },
+    {
+      "model": "openai/gpt-oss-20b:free",
+      "question": "מהן חמש העמותות שקיבלו את סכומי התמיכה ה",
+      "steps": 3,
+      "tool_calls": 2,
+      "latency_ms": 118665,
+      "hebrew_ratio": 0.67,
+      "has_numbers": true,
+      "answer_chars": 916,
+      "answer_preview": "**חמש העמותות שקיבלו את סכומי התמיכה הגבוהים ביותר מהמדינה בשנת 2024**  | # | עמותה | סכום תמיכה (ש״ח) | קישור לפריט | |---|--------|------------------|-------------| | 1 | **העירייה גבעת דה‑אור** | 1,975,885,054.00 | [פריט](https://next.obudget.org/i/966cf944b992) | | 2 | **הגבעת דה‑אור** | 1,831,961,818.00 | [פריט](https://next.obudget.org/i/8636c7b9343c) | | 3 | **העירייה יישוב יישוב** | 1,522,"
+    },
+    {
+      "model": "openai/gpt-oss-20b:free",
+      "question": "איך השתנה תקציב משרד הביטחון בין 2022 ל-",
+      "steps": 3,
+      "tool_calls": 2,
+      "latency_ms": 39349,
+      "hebrew_ratio": 0,
+      "has_numbers": false,
+      "answer_chars": 0,
+      "answer_preview": ""
+    }
+  ],
+  "requests_used": 13
+}

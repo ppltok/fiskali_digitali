@@ -80,8 +80,26 @@ function ChatView({
       stuck_ref.current = near_bottom;
       setStuck(near_bottom);
     };
+    // Wheel-up / touch are explicit "stop following" intent — don't make the
+    // user's gesture race the stream's re-pin cadence.
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY < 0) {
+        stuck_ref.current = false;
+        setStuck(false);
+      }
+    };
+    const onTouchStart = () => {
+      stuck_ref.current = false;
+      setStuck(false);
+    };
     window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    window.addEventListener('wheel', onWheel, { passive: true });
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('wheel', onWheel);
+      window.removeEventListener('touchstart', onTouchStart);
+    };
   }, []);
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
@@ -103,6 +121,7 @@ function ChatView({
   }, [status, messages, convo_id, onSaved]);
 
   const ask = (text: string) => {
+    if (busy || !text.trim()) return;
     sendMessage({ text });
     setInput('');
     stuck_ref.current = true;
