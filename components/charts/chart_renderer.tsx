@@ -175,6 +175,7 @@ export default function ChartRenderer({ input }: { input: unknown }) {
                     name={labels[i]}
                     stroke={SERIES_COLORS[i]}
                     strokeWidth={2}
+                    isAnimationActive={false}
                     dot={{ r: 4, fill: SERIES_COLORS[i], strokeWidth: 2, stroke: 'var(--surface)' }}
                     activeDot={{ r: 5 }}
                   />
@@ -195,6 +196,7 @@ export default function ChartRenderer({ input }: { input: unknown }) {
                   paddingAngle={2}
                   stroke="var(--surface)"
                   strokeWidth={2}
+                  isAnimationActive={false}
                 >
                   {chart.rows.map((_, i) => (
                     <Cell key={i} fill={SERIES_COLORS[i % SERIES_COLORS.length]} />
@@ -230,6 +232,7 @@ export default function ChartRenderer({ input }: { input: unknown }) {
                     name={labels[i]}
                     fill={SERIES_COLORS[i]}
                     radius={[4, 4, 0, 0]}
+                    isAnimationActive={false}
                     maxBarSize={44}
                   />
                 ))}

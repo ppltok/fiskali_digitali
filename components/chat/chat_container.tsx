@@ -1,12 +1,23 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
+import type { UIMessage } from 'ai';
 import { Landmark, Moon, Sun } from 'lucide-react';
 import MessageBubble from './message_bubble';
 import MessageInput from './message_input';
 import StarterQuestions from './starter_questions';
+import ConversationSidebar from './conversation_sidebar';
+import SettingsDrawer from './settings_drawer';
+import {
+  listConversations,
+  loadConversation,
+  saveConversation,
+  deleteConversation,
+  getUserKey,
+  type ConversationMeta,
+} from '@/lib/storage';
 
 function useThemeToggle() {
   const [theme, setTheme] = useState<'light' | 'dark' | null>(null);
@@ -29,13 +40,28 @@ function useThemeToggle() {
   return toggle;
 }
 
-export default function ChatContainer() {
+function ChatView({
+  convo_id,
+  initial_messages,
+  onSaved,
+}: {
+  convo_id: string;
+  initial_messages: UIMessage[];
+  onSaved: () => void;
+}) {
   const [input, setInput] = useState('');
   const bottom_ref = useRef<HTMLDivElement>(null);
-  const toggleTheme = useThemeToggle();
 
   const { messages, sendMessage, status, stop, error } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/chat' }),
+    id: convo_id,
+    messages: initial_messages,
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      headers: (): Record<string, string> => {
+        const user_key = getUserKey();
+        return user_key ? { 'x-user-key': user_key } : {};
+      },
+    }),
   });
 
   const busy = status === 'submitted' || status === 'streaming';
@@ -45,37 +71,21 @@ export default function ChatContainer() {
     bottom_ref.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages]);
 
+  // Persist after each completed exchange (and restore-on-reload comes free).
+  useEffect(() => {
+    if (status === 'ready' && messages.length > 0) {
+      saveConversation(convo_id, messages);
+      onSaved();
+    }
+  }, [status, messages, convo_id, onSaved]);
+
   const ask = (text: string) => {
     sendMessage({ text });
     setInput('');
   };
 
   return (
-    <div className="flex min-h-dvh flex-col">
-      {/* Masthead */}
-      <header className="sticky top-0 z-10 border-b border-hairline bg-paper/85 backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-white">
-              <Landmark className="size-4.5" />
-            </span>
-            <div className="leading-tight">
-              <p className="font-display text-lg text-ink">פיסקלי דיגיטלי</p>
-              <p className="text-[11px] text-ink-faint">שיחה חיה עם תקציב המדינה · מפתח התקציב</p>
-            </div>
-          </div>
-          <button
-            onClick={toggleTheme}
-            aria-label="החלף מצב תצוגה"
-            className="flex size-8 items-center justify-center rounded-lg border border-hairline text-ink-soft transition-colors hover:border-accent hover:text-accent"
-          >
-            <Sun className="size-4 dark:hidden [[data-theme='dark']_&]:hidden" />
-            <Moon className="hidden size-4 dark:block [[data-theme='dark']_&]:block [[data-theme='light']_&]:hidden" />
-          </button>
-        </div>
-      </header>
-
-      {/* Conversation column */}
+    <>
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-40 pt-6">
         {empty ? (
           <div className="mt-8 sm:mt-16">
@@ -130,7 +140,6 @@ export default function ChatContainer() {
         )}
       </main>
 
-      {/* Composer */}
       <div className="fixed inset-x-0 bottom-0 z-10 bg-gradient-to-t from-paper via-paper/95 to-transparent pb-4 pt-8">
         <div className="mx-auto w-full max-w-3xl px-4">
           <MessageInput
@@ -145,6 +154,88 @@ export default function ChatContainer() {
           </p>
         </div>
       </div>
+    </>
+  );
+}
+
+export default function ChatContainer() {
+  const toggleTheme = useThemeToggle();
+  const [convo_id, setConvoId] = useState<string | null>(null);
+  const [initial_messages, setInitialMessages] = useState<UIMessage[]>([]);
+  const [conversations, setConversations] = useState<ConversationMeta[]>([]);
+
+  // Hydrate id + history on the client only (localStorage + randomUUID are
+  // browser-side; doing this in render would break SSR hydration).
+  useEffect(() => {
+    setConversations(listConversations());
+    setConvoId(crypto.randomUUID());
+  }, []);
+
+  const refreshList = useCallback(() => setConversations(listConversations()), []);
+
+  const newConversation = () => {
+    setInitialMessages([]);
+    setConvoId(crypto.randomUUID());
+  };
+
+  const selectConversation = (id: string) => {
+    const messages = loadConversation(id);
+    if (messages) {
+      setInitialMessages(messages);
+      setConvoId(id);
+    }
+  };
+
+  const removeConversation = (id: string) => {
+    deleteConversation(id);
+    refreshList();
+    if (id === convo_id) newConversation();
+  };
+
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <header className="sticky top-0 z-20 border-b border-hairline bg-paper/85 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-white">
+              <Landmark className="size-4.5" />
+            </span>
+            <div className="leading-tight">
+              <p className="font-display text-lg text-ink">פיסקלי דיגיטלי</p>
+              <p className="text-[11px] text-ink-faint">
+                שיחה חיה עם תקציב המדינה · מפתח התקציב
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <ConversationSidebar
+              conversations={conversations}
+              active_id={convo_id ?? ''}
+              onSelect={selectConversation}
+              onNew={newConversation}
+              onDelete={removeConversation}
+            />
+            <SettingsDrawer />
+            <button
+              onClick={toggleTheme}
+              aria-label="החלף מצב תצוגה"
+              className="flex size-8 items-center justify-center rounded-lg border border-hairline text-ink-soft transition-colors hover:border-accent hover:text-accent"
+            >
+              <Sun className="size-4 dark:hidden [[data-theme='dark']_&]:hidden" />
+              <Moon className="hidden size-4 dark:block [[data-theme='dark']_&]:block [[data-theme='light']_&]:hidden" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {convo_id && (
+        <ChatView
+          key={convo_id}
+          convo_id={convo_id}
+          initial_messages={initial_messages}
+          onSaved={refreshList}
+        />
+      )}
     </div>
   );
 }
