@@ -17,7 +17,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { formatShekels, formatCompact } from '@/lib/format';
+import { formatShekels, axisUnit, formatAxisTick } from '@/lib/format';
 import DataTable from './data_table';
 import type { ChartInput } from '@/lib/chart_tool';
 
@@ -120,8 +120,14 @@ export default function ChartRenderer({ input }: { input: unknown }) {
 
   const labels = chart.y_keys.map((k, i) => chart.y_labels?.[i] ?? k);
   const multi_series = chart.y_keys.length > 1;
+  const max_abs = Math.max(
+    ...chart.rows.flatMap((r) =>
+      chart.y_keys.map((k) => (typeof r[k] === 'number' ? Math.abs(r[k] as number) : 0))
+    )
+  );
+  const unit = axisUnit(max_abs);
   const table_columns = [
-    { key: chart.x_key, label: '' },
+    { key: chart.x_key, label: chart.x_key === 'year' ? 'שנה' : '' },
     ...chart.y_keys.map((k, i) => ({ key: k, label: labels[i], is_currency: true })),
   ];
 
@@ -144,10 +150,13 @@ export default function ChartRenderer({ input }: { input: unknown }) {
           <DataTable columns={table_columns} rows={chart.rows} />
         </div>
       ) : (
-        <div dir="ltr" className="px-2 pt-4">
+        <div dir="ltr" className="px-2 pt-2">
+          {chart.chart_type !== 'pie' && (
+            <p dir="rtl" className="pe-2 pt-1 text-end text-[11px] text-ink-faint">{unit.label}</p>
+          )}
           <ResponsiveContainer width="100%" height={280}>
             {chart.chart_type === 'line' ? (
-              <LineChart data={chart.rows} margin={{ top: 6, right: 12, left: 12, bottom: 4 }}>
+              <LineChart data={chart.rows} margin={{ top: 16, right: 12, left: 12, bottom: 4 }}>
                 <CartesianGrid stroke="var(--hairline)" strokeDasharray="0" vertical={false} />
                 <XAxis
                   dataKey={chart.x_key}
@@ -156,11 +165,11 @@ export default function ChartRenderer({ input }: { input: unknown }) {
                   tickLine={false}
                 />
                 <YAxis
-                  tickFormatter={formatCompact}
+                  tickFormatter={(v: number) => formatAxisTick(v, unit.divisor)}
                   tick={{ fill: 'var(--ink-faint)', fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
-                  width={70}
+                  width={44}
                 />
                 <Tooltip content={<FiscalTooltip />} />
                 {multi_series && (
@@ -204,7 +213,7 @@ export default function ChartRenderer({ input }: { input: unknown }) {
                 </Pie>
               </PieChart>
             ) : (
-              <BarChart data={chart.rows} margin={{ top: 6, right: 12, left: 12, bottom: 4 }} barCategoryGap="25%">
+              <BarChart data={chart.rows} margin={{ top: 16, right: 12, left: 12, bottom: 4 }} barCategoryGap="25%">
                 <CartesianGrid stroke="var(--hairline)" strokeDasharray="0" vertical={false} />
                 <XAxis
                   dataKey={chart.x_key}
@@ -213,11 +222,11 @@ export default function ChartRenderer({ input }: { input: unknown }) {
                   tickLine={false}
                 />
                 <YAxis
-                  tickFormatter={formatCompact}
+                  tickFormatter={(v: number) => formatAxisTick(v, unit.divisor)}
                   tick={{ fill: 'var(--ink-faint)', fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
-                  width={70}
+                  width={44}
                 />
                 <Tooltip content={<FiscalTooltip />} cursor={{ fill: 'var(--accent-soft)', opacity: 0.4 }} />
                 {multi_series && (

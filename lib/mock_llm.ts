@@ -17,17 +17,14 @@ interface MockEvent {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-let fixture_cache: MockEvent[] | null = null;
-
 function loadFixture(): MockEvent[] {
-  if (!fixture_cache) {
-    const raw = readFileSync(
-      join(process.cwd(), 'fixtures', 'mock_conversation.json'),
-      'utf-8'
-    );
-    fixture_cache = JSON.parse(raw) as MockEvent[];
-  }
-  return fixture_cache;
+  // Read fresh per request — trivial cost, and edits to the fixture apply
+  // immediately in dev without restarting the server.
+  const raw = readFileSync(
+    join(process.cwd(), 'fixtures', 'mock_conversation.json'),
+    'utf-8'
+  );
+  return JSON.parse(raw) as MockEvent[];
 }
 
 export function mockChatResponse(): Response {

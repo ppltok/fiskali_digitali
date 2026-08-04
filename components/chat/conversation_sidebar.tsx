@@ -5,6 +5,18 @@ import { createPortal } from 'react-dom';
 import { MessageSquarePlus, Trash2, History, X } from 'lucide-react';
 import type { ConversationMeta } from '@/lib/storage';
 
+function relativeTime(ts: number): string {
+  const minutes = Math.round((Date.now() - ts) / 60000);
+  if (minutes < 1) return 'עכשיו';
+  if (minutes < 60) return `לפני ${minutes} דק׳`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `לפני ${hours} שע׳`;
+  const days = Math.round(hours / 24);
+  if (days === 1) return 'אתמול';
+  if (days < 30) return `לפני ${days} ימים`;
+  return new Date(ts).toLocaleDateString('he-IL');
+}
+
 export default function ConversationSidebar({
   conversations,
   active_id,
@@ -82,14 +94,18 @@ export default function ConversationSidebar({
                       onSelect(convo.id);
                       setOpen(false);
                     }}
-                    className="flex-1 truncate px-2 py-2.5 text-start text-sm text-ink-soft"
+                    className="min-w-0 flex-1 px-2 py-2 text-start"
                   >
-                    {convo.title}
+                    <span className="block truncate text-sm text-ink-soft">{convo.title}</span>
+                    <span className="block text-[11px] text-ink-faint">
+                      {relativeTime(convo.updated_at)}
+                    </span>
                   </button>
+                  {/* Always visible on touch; hover/focus-revealed on pointer devices */}
                   <button
                     onClick={() => onDelete(convo.id)}
                     aria-label={`מחק את "${convo.title}"`}
-                    className="rounded-md p-1.5 text-ink-faint opacity-0 transition-opacity hover:text-negative group-hover:opacity-100"
+                    className="rounded-md p-1.5 text-ink-faint transition-opacity hover:text-negative focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 [@media(pointer:coarse)]:opacity-100"
                   >
                     <Trash2 className="size-3.5" />
                   </button>

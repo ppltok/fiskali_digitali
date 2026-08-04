@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import type { UIMessage } from 'ai';
-import { Landmark, Moon, Sun } from 'lucide-react';
+import { Landmark, Moon, Sun, ArrowDown } from 'lucide-react';
 import MessageBubble from './message_bubble';
 import MessageInput from './message_input';
 import StarterQuestions from './starter_questions';
@@ -35,6 +35,10 @@ function useThemeToggle() {
     const next = current === 'dark' ? 'light' : 'dark';
     setTheme(next);
     document.documentElement.dataset.theme = next;
+    // Also flip color-scheme: fixes native form controls AND forces the
+    // compositor to repaint the blurred sticky header, which otherwise can
+    // keep stale-theme pixels.
+    document.documentElement.style.colorScheme = next;
     localStorage.setItem('fiskali_theme', next);
   };
   return toggle;
@@ -50,7 +54,9 @@ function ChatView({
   onSaved: () => void;
 }) {
   const [input, setInput] = useState('');
-  const bottom_ref = useRef<HTMLDivElement>(null);
+  // "Stick to bottom": follow the stream unless the user scrolled away.
+  const [stuck, setStuck] = useState(true);
+  const stuck_ref = useRef(true);
 
   const { messages, sendMessage, status, stop, error } = useChat({
     id: convo_id,
@@ -68,8 +74,25 @@ function ChatView({
   const empty = messages.length === 0;
 
   useEffect(() => {
-    bottom_ref.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages]);
+    const onScroll = () => {
+      const near_bottom =
+        window.innerHeight + window.scrollY >= document.body.scrollHeight - 180;
+      stuck_ref.current = near_bottom;
+      setStuck(near_bottom);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'auto') => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior });
+  }, []);
+
+  // Follow the stream while stuck to the bottom. 'auto' (instant) because
+  // repeated smooth scrolls cancel each other and end up not moving at all.
+  useEffect(() => {
+    if (stuck_ref.current) scrollToBottom();
+  }, [messages, scrollToBottom]);
 
   // Persist after each completed exchange (and restore-on-reload comes free).
   useEffect(() => {
@@ -82,6 +105,10 @@ function ChatView({
   const ask = (text: string) => {
     sendMessage({ text });
     setInput('');
+    stuck_ref.current = true;
+    setStuck(true);
+    // After React commits the new user message, bring it into view.
+    requestAnimationFrame(() => scrollToBottom());
   };
 
   return (
@@ -119,6 +146,7 @@ function ChatView({
                 message={message}
                 is_last={i === messages.length - 1}
                 streaming={busy}
+                onAsk={ask}
               />
             ))}
             {status === 'submitted' && (
@@ -135,13 +163,21 @@ function ChatView({
                 {error.message || 'אירעה שגיאה. נסו שוב.'}
               </div>
             )}
-            <div ref={bottom_ref} className="h-px" />
           </div>
         )}
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-10 bg-gradient-to-t from-paper via-paper/95 to-transparent pb-4 pt-8">
-        <div className="mx-auto w-full max-w-3xl px-4">
+        <div className="relative mx-auto w-full max-w-3xl px-4">
+          {!stuck && !empty && (
+            <button
+              onClick={() => scrollToBottom('smooth')}
+              aria-label="קפוץ לסוף השיחה"
+              className="absolute -top-12 start-1/2 flex size-9 -translate-x-1/2 items-center justify-center rounded-full border border-hairline bg-surface-raised text-ink-soft shadow-lg transition-colors hover:border-accent hover:text-accent rtl:translate-x-1/2"
+            >
+              <ArrowDown className="size-4" />
+            </button>
+          )}
           <MessageInput
             value={input}
             onChange={setInput}
@@ -202,7 +238,7 @@ export default function ChatContainer() {
             </span>
             <div className="leading-tight">
               <p className="font-display text-lg text-ink">פיסקלי דיגיטלי</p>
-              <p className="text-[11px] text-ink-faint">
+              <p className="hidden text-[11px] text-ink-faint sm:block">
                 שיחה חיה עם תקציב המדינה · מפתח התקציב
               </p>
             </div>

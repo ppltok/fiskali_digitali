@@ -38,6 +38,7 @@ export default function StarterQuestions({
         <button
           key={starter.q}
           onClick={() => onSelect(starter.q)}
+          aria-label={starter.q}
           className="rise-in group relative overflow-hidden rounded-xl border border-hairline bg-surface p-4 text-start transition-all duration-300 hover:-translate-y-0.5 hover:border-accent hover:shadow-[0_8px_30px_-12px_rgba(12,107,90,0.35)]"
           style={{ animationDelay: `${i * 70}ms` }}
         >

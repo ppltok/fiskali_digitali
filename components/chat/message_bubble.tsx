@@ -4,10 +4,29 @@ import { memo } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { UIMessage } from 'ai';
+import { MessageCircleQuestionMark } from 'lucide-react';
 import ToolProgress from './tool_progress';
 import ChartRenderer from '@/components/charts/chart_renderer';
 import DataTable from '@/components/charts/data_table';
-import type { TableInput } from '@/lib/chart_tool';
+import type { TableInput, FollowupsInput } from '@/lib/chart_tool';
+
+function FollowupChips({ questions, onAsk }: { questions: string[]; onAsk: (q: string) => void }) {
+  return (
+    <div className="rise-in mt-4 flex flex-wrap gap-2">
+      {questions.slice(0, 4).map((q) => (
+        <button
+          key={q}
+          type="button"
+          onClick={() => onAsk(q)}
+          className="flex items-center gap-1.5 rounded-full border border-hairline bg-surface px-3.5 py-1.5 text-[13px] text-ink-soft transition-all hover:-translate-y-px hover:border-accent hover:text-accent-strong"
+        >
+          <MessageCircleQuestionMark className="size-3.5 text-accent" />
+          {q}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function UserMessage({ text }: { text: string }) {
   return (
@@ -65,7 +84,17 @@ function AssistantText({ text, streaming }: { text: string; streaming: boolean }
   );
 }
 
-function MessageBubble({ message, is_last, streaming }: { message: UIMessage; is_last: boolean; streaming: boolean }) {
+function MessageBubble({
+  message,
+  is_last,
+  streaming,
+  onAsk,
+}: {
+  message: UIMessage;
+  is_last: boolean;
+  streaming: boolean;
+  onAsk: (q: string) => void;
+}) {
   if (message.role === 'user') {
     const text = message.parts
       .filter((p) => p.type === 'text')
@@ -102,6 +131,14 @@ function MessageBubble({ message, is_last, streaming }: { message: UIMessage; is
         if (part.type === 'tool-display_chart') {
           if (part.state === 'output-available' || part.state === 'input-available') {
             return <ChartRenderer key={part.toolCallId} input={part.input} />;
+          }
+          return null;
+        }
+        if (part.type === 'tool-suggest_questions') {
+          if (part.state === 'output-available' || part.state === 'input-available') {
+            const input = part.input as FollowupsInput;
+            if (!Array.isArray(input?.questions)) return null;
+            return <FollowupChips key={part.toolCallId} questions={input.questions} onAsk={onAsk} />;
           }
           return null;
         }

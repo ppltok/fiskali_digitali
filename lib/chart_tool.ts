@@ -39,7 +39,19 @@ export const table_input_schema = z.object({
 export type ChartInput = z.infer<typeof chart_input_schema>;
 export type TableInput = z.infer<typeof table_input_schema>;
 
+export const followups_input_schema = z.object({
+  questions: z.array(z.string()).min(1).max(4).describe('Short Hebrew follow-up questions'),
+});
+
+export type FollowupsInput = z.infer<typeof followups_input_schema>;
+
 export const display_tools = {
+  suggest_questions: tool({
+    description:
+      'Offer the user 2-3 short follow-up questions as tappable chips. Call this at the END of every answer instead of writing the questions as text.',
+    inputSchema: followups_input_schema,
+    execute: async () => ({ ok: true }),
+  }),
   display_chart: tool({
     description:
       'Render an interactive chart to the user. Use for trends (line), comparisons (bar), or breakdowns (pie). Numbers stay raw — the UI formats ₪.',

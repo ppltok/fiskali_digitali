@@ -69,7 +69,7 @@ export default function ToolProgress({ tool_name, state, input, error_text }: To
       {open && sql && (
         <pre
           dir="ltr"
-          className="mt-1.5 overflow-x-auto rounded-lg border border-hairline bg-surface-raised p-3 text-start font-figures text-[11px] leading-relaxed text-ink-soft"
+          className="mt-1.5 whitespace-pre-wrap break-words rounded-lg border border-hairline bg-surface-raised p-3 text-start font-figures text-[11px] leading-relaxed text-ink-soft"
         >
           {sql}
         </pre>

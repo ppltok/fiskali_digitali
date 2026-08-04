@@ -118,12 +118,11 @@ body {
   background: color-mix(in oklab, var(--accent) 25%, transparent);
 }
 
-/* Figures: shekel amounts get tabular mono digits. */
+/* Figures: shekel amounts get tabular mono digits. Hebrew words inside fall
+   back to Heebo; digits stay weak-directional so RTL flow is preserved. */
 .figure {
-  font-family: var(--font-plex-mono), monospace;
+  font-family: var(--font-plex-mono), var(--font-heebo), monospace;
   font-variant-numeric: tabular-nums;
-  direction: ltr;
-  unicode-bidi: isolate;
 }
 
 /* Streaming caret at the end of an in-progress assistant message. */
