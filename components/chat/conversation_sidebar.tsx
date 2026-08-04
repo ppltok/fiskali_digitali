@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { MessageSquarePlus, Trash2, History, X } from 'lucide-react';
 import type { ConversationMeta } from '@/lib/storage';
 
@@ -40,7 +41,10 @@ export default function ConversationSidebar({
         </button>
       </div>
 
-      {open && (
+      {/* Portal: the sticky header's backdrop-filter makes it a containing
+          block for fixed descendants, which would trap this overlay inside it. */}
+      {open &&
+        createPortal(
         <div className="fixed inset-0 z-30" role="dialog" aria-label="היסטוריית שיחות">
           <button
             aria-label="סגור"
@@ -93,7 +97,8 @@ export default function ConversationSidebar({
               ))}
             </div>
           </aside>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

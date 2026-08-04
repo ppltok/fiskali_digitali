@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Settings2, X, KeyRound } from 'lucide-react';
 import { getUserKey, setUserKey } from '@/lib/storage';
 
@@ -33,7 +34,8 @@ export default function SettingsDrawer() {
         <Settings2 className="size-4" />
       </button>
 
-      {open && (
+      {open &&
+        createPortal(
         <div className="fixed inset-0 z-30" role="dialog" aria-label="הגדרות">
           <button
             aria-label="סגור"
@@ -96,7 +98,8 @@ export default function SettingsDrawer() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
