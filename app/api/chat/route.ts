@@ -8,7 +8,7 @@ import { openBudgetSession, type BudgetMCPSession } from '@/lib/budget_mcp';
 import { getBudgetRestTools } from '@/lib/budget_rest_tools';
 import { display_tools } from '@/lib/chart_tool';
 import { buildSystemPrompt } from '@/lib/system_prompt';
-import { resolveModel } from '@/lib/models';
+import { resolveModel, invalidateModelChoice } from '@/lib/models';
 import { mockChatResponse } from '@/lib/mock_llm';
 
 export const maxDuration = 300;
@@ -64,26 +64,26 @@ export async function POST(req: Request) {
     }
   }
 
-  let model;
+  let resolved;
   try {
-    model = resolveModel(user_key);
+    resolved = await resolveModel(user_key);
   } catch {
     await session?.close();
     return Response.json(
-      { error: 'missing_api_key', message: 'חסר מפתח OpenRouter בצד השרת.' },
+      { error: 'missing_api_key', message: 'חסר מפתח מודל שפה בצד השרת.' },
       { status: 500 }
     );
   }
+  console.log(`[chat] provider=${resolved.provider} model=${resolved.id}`);
 
   const result = streamText({
-    model,
+    model: resolved.model,
     system: buildSystemPrompt(server_instructions),
     messages: await convertToModelMessages(messages),
     tools: { ...data_tools, ...display_tools },
-    // Gemini free tier = 20 requests/min and one agentic answer makes up to 9
-    // calls. Exponential backoff across 6 retries (~2min span) rides out the
-    // per-minute window instead of failing the stream after 3 fast attempts.
-    maxRetries: 6,
+    // A daily-exhausted bucket never recovers by retrying — resolveModel already
+    // picked a live model, so keep retries small for genuine transient blips.
+    maxRetries: 2,
     // Gemini routinely uses 6-8 legitimate steps on trend questions
     // (schema → search → several queries → chart → follow-ups).
     stopWhen: stepCountIs(9),
@@ -92,6 +92,8 @@ export async function POST(req: Request) {
     },
     onError: async ({ error }) => {
       console.error('[chat] streamText error:', error);
+      // A bucket that died mid-stream must not be reused by the next request.
+      invalidateModelChoice();
       await session?.close();
     },
   });
@@ -109,7 +111,7 @@ export async function POST(req: Request) {
         return 'השרתים החינמיים של מודל השפה עמוסים כרגע — זה קורה בשעות שיא. נסו שוב בעוד דקה-שתיים.';
       }
       if (text.includes('429') || text.toLowerCase().includes('rate') || text.toLowerCase().includes('quota')) {
-        return 'יש כרגע יותר מדי שאלות בו-זמנית מול המכסה החינמית — המתינו כדקה ונסו שוב. אם זה חוזר שוב ושוב, אפשר להוסיף מפתח OpenRouter אישי בהגדרות.';
+        return 'המכסות החינמיות של כל המודלים אזלו להיום. אפשר להוסיף מפתח OpenRouter אישי בהגדרות (חינמי, דקה להפיק) ולהמשיך מיד.';
       }
       return 'אירעה שגיאה בעיבוד השאלה. נסו לנסח אותה מחדש.';
     },
