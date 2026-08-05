@@ -80,7 +80,9 @@ export async function POST(req: Request) {
     system: buildSystemPrompt(server_instructions),
     messages: await convertToModelMessages(messages),
     tools: { ...data_tools, ...display_tools },
-    stopWhen: stepCountIs(6),
+    // Gemini routinely uses 6-8 legitimate steps on trend questions
+    // (schema → search → several queries → chart → follow-ups).
+    stopWhen: stepCountIs(9),
     onFinish: async () => {
       await session?.close();
     },
@@ -102,8 +104,8 @@ export async function POST(req: Request) {
       ) {
         return 'השרתים החינמיים של מודל השפה עמוסים כרגע — זה קורה בשעות שיא. נסו שוב בעוד דקה-שתיים.';
       }
-      if (text.includes('429') || text.toLowerCase().includes('rate')) {
-        return 'חרגנו ממכסת השאילתות החינמית להיום. נסו שוב מאוחר יותר, או הוסיפו מפתח OpenRouter משלכם בהגדרות.';
+      if (text.includes('429') || text.toLowerCase().includes('rate') || text.toLowerCase().includes('quota')) {
+        return 'יש כרגע יותר מדי שאלות בו-זמנית מול המכסה החינמית — המתינו כדקה ונסו שוב. אם זה חוזר שוב ושוב, אפשר להוסיף מפתח OpenRouter אישי בהגדרות.';
       }
       return 'אירעה שגיאה בעיבוד השאלה. נסו לנסח אותה מחדש.';
     },
