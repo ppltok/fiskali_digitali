@@ -80,6 +80,10 @@ export async function POST(req: Request) {
     system: buildSystemPrompt(server_instructions),
     messages: await convertToModelMessages(messages),
     tools: { ...data_tools, ...display_tools },
+    // Gemini free tier = 20 requests/min and one agentic answer makes up to 9
+    // calls. Exponential backoff across 6 retries (~2min span) rides out the
+    // per-minute window instead of failing the stream after 3 fast attempts.
+    maxRetries: 6,
     // Gemini routinely uses 6-8 legitimate steps on trend questions
     // (schema → search → several queries → chart → follow-ups).
     stopWhen: stepCountIs(9),
