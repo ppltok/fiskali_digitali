@@ -44,6 +44,28 @@ function useThemeToggle() {
   return toggle;
 }
 
+// The first stream chunk can take a while when the free-tier per-minute quota
+// is busy (the server waits it out with backoff). Be honest about the wait
+// instead of looking hung.
+function PendingIndicator() {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), 8000);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div className="rise-in flex items-center gap-2 text-sm text-ink-faint">
+      <span className="relative flex size-2.5">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
+        <span className="relative inline-flex size-2.5 rounded-full bg-accent" />
+      </span>
+      {slow
+        ? 'המכסה החינמית עמוסה כרגע — ממתינים בתור, זה יכול לקחת עד דקה-שתיים…'
+        : 'מתחבר למפתח התקציב…'}
+    </div>
+  );
+}
+
 function ChatView({
   convo_id,
   initial_messages,
@@ -168,15 +190,7 @@ function ChatView({
                 onAsk={ask}
               />
             ))}
-            {status === 'submitted' && (
-              <div className="rise-in flex items-center gap-2 text-sm text-ink-faint">
-                <span className="relative flex size-2.5">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60" />
-                  <span className="relative inline-flex size-2.5 rounded-full bg-accent" />
-                </span>
-                מתחבר למפתח התקציב…
-              </div>
-            )}
+            {status === 'submitted' && <PendingIndicator />}
             {error && (
               <div className="rise-in mt-3 rounded-xl border border-negative/30 bg-negative/5 px-4 py-3 text-sm text-negative">
                 {error.message || 'אירעה שגיאה. נסו שוב.'}
