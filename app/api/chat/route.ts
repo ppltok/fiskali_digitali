@@ -1,6 +1,8 @@
 import {
   streamText,
   convertToModelMessages,
+  createUIMessageStream,
+  createUIMessageStreamResponse,
   stepCountIs,
   type UIMessage,
 } from 'ai';
@@ -8,7 +10,7 @@ import { openBudgetSession, type BudgetMCPSession } from '@/lib/budget_mcp';
 import { getBudgetRestTools } from '@/lib/budget_rest_tools';
 import { display_tools } from '@/lib/chart_tool';
 import { buildSystemPrompt } from '@/lib/system_prompt';
-import { resolveModel, invalidateModelChoice } from '@/lib/models';
+import { buildCandidates, isFailoverError } from '@/lib/models';
 import { mockChatResponse } from '@/lib/mock_llm';
 
 export const maxDuration = 300;
@@ -64,56 +66,83 @@ export async function POST(req: Request) {
     }
   }
 
-  let resolved;
-  try {
-    resolved = await resolveModel(user_key);
-  } catch {
+  const candidates = buildCandidates(user_key);
+  if (!candidates.length) {
     await session?.close();
     return Response.json(
       { error: 'missing_api_key', message: 'חסר מפתח מודל שפה בצד השרת.' },
       { status: 500 }
     );
   }
-  console.log(`[chat] provider=${resolved.provider} model=${resolved.id}`);
 
-  const result = streamText({
-    model: resolved.model,
-    system: buildSystemPrompt(server_instructions),
-    messages: await convertToModelMessages(messages),
-    tools: { ...data_tools, ...display_tools },
-    // A daily-exhausted bucket never recovers by retrying — resolveModel already
-    // picked a live model, so keep retries small for genuine transient blips.
-    maxRetries: 2,
-    // Gemini routinely uses 6-8 legitimate steps on trend questions
-    // (schema → search → several queries → chart → follow-ups).
-    stopWhen: stepCountIs(9),
+  const system = buildSystemPrompt(server_instructions);
+  const model_messages = await convertToModelMessages(messages);
+  const tools = { ...data_tools, ...display_tools };
+
+  const stream = createUIMessageStream({
+    execute: async ({ writer }) => {
+      let last_error: unknown;
+
+      for (let i = 0; i < candidates.length; i++) {
+        const candidate = candidates[i];
+        // Nothing has reached the user yet, so this candidate may still be
+        // swapped out; once a chunk is written we are committed to it.
+        let committed = false;
+        const started = Date.now();
+
+        const result = streamText({
+          model: candidate.model,
+          system,
+          messages: model_messages,
+          tools,
+          // Exhausted daily buckets never recover by retrying — failing over to
+          // the next bucket is both faster and cheaper than waiting.
+          maxRetries: 1,
+          stopWhen: stepCountIs(9),
+          onFinish: ({ steps, usage }) => {
+            console.log(
+              `[chat] ok provider=${candidate.provider} model=${candidate.id} ` +
+                `steps=${steps.length} tokens=${usage?.totalTokens ?? '?'} ` +
+                `ms=${Date.now() - started}`
+            );
+          },
+        });
+
+        try {
+          for await (const chunk of result.toUIMessageStream({ sendStart: i === 0 })) {
+            writer.write(chunk);
+            committed = true;
+          }
+          return;
+        } catch (error) {
+          last_error = error;
+          const can_retry = !committed && isFailoverError(error) && i < candidates.length - 1;
+          console.error(
+            `[chat] ${candidate.provider}/${candidate.id} failed ` +
+              `(committed=${committed}, failover=${can_retry}):`,
+            error
+          );
+          if (!can_retry) throw error;
+        }
+      }
+
+      throw last_error ?? new Error('no_candidates');
+    },
     onFinish: async () => {
       await session?.close();
     },
-    onError: async ({ error }) => {
-      console.error('[chat] streamText error:', error);
-      // A bucket that died mid-stream must not be reused by the next request.
-      invalidateModelChoice();
-      await session?.close();
-    },
-  });
-
-  return result.toUIMessageStreamResponse({
     onError: (error) => {
-      console.error('[chat] stream error:', error);
-      const err = error as { message?: string; code?: number; metadata?: { error_type?: string } };
-      const text = err?.message ?? String(error);
-      if (
-        err?.code === 502 ||
-        err?.metadata?.error_type === 'provider_unavailable' ||
-        text.includes('ResourceExhausted')
-      ) {
-        return 'השרתים החינמיים של מודל השפה עמוסים כרגע — זה קורה בשעות שיא. נסו שוב בעוד דקה-שתיים.';
+      const err = error as { message?: string; statusCode?: number };
+      const text = `${err?.message ?? ''} ${String(error)}`.toLowerCase();
+      if (text.includes('quota') || text.includes('429') || text.includes('rate limit')) {
+        return 'כל המכסות החינמיות אזלו לרגע זה. אפשר להוסיף מפתח OpenRouter אישי בהגדרות (חינמי, דקה להפיק) ולהמשיך מיד — או לנסות שוב מאוחר יותר.';
       }
-      if (text.includes('429') || text.toLowerCase().includes('rate') || text.toLowerCase().includes('quota')) {
-        return 'המכסות החינמיות של כל המודלים אזלו להיום. אפשר להוסיף מפתח OpenRouter אישי בהגדרות (חינמי, דקה להפיק) ולהמשיך מיד.';
+      if (text.includes('unavailable') || text.includes('overloaded') || text.includes('503')) {
+        return 'שרתי המודל החינמיים עמוסים כרגע. נסו שוב בעוד רגע.';
       }
       return 'אירעה שגיאה בעיבוד השאלה. נסו לנסח אותה מחדש.';
     },
   });
+
+  return createUIMessageStreamResponse({ stream });
 }

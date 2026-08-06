@@ -2,15 +2,20 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { LanguageModel } from 'ai';
 
-// Free-tier reality (measured 2026-08-05): Google meters `free_tier_requests`
-// PER MODEL PER DAY, and the newest alias (gemini-flash-latest → 3.6-flash)
-// allows only 20/day — about two agentic answers. Other models have their own,
-// much healthier buckets. So we cascade: ping candidates cheaply, use the first
-// live one, and fall through to OpenRouter when every Google bucket is spent.
+// Free-tier reality (measured 2026-08-05): Google meters requests PER MODEL PER
+// DAY — `gemini-flash-latest` (→3.6-flash) allows only 20/day — while each
+// other model carries its own separate bucket. So we never "pick" one model:
+// we try them in order and fail over the moment one is exhausted, which makes
+// the daily capacity the SUM of every bucket plus OpenRouter's free chain.
+//
+// Order: highest-quota lite models first (they carry the day), full flash next
+// (better reasoning, tiny bucket — saved for when lite is spent), OpenRouter
+// last. No health pings: a ping costs a real request from a scarce bucket.
 const GOOGLE_CANDIDATES = [
-  'gemini-3-flash-preview',
   'gemini-flash-lite-latest',
+  'gemini-3.1-flash-lite-preview',
   'gemini-flash-latest',
+  'gemini-3-flash-preview',
 ];
 
 export const MODEL_CHAIN = [
@@ -19,46 +24,10 @@ export const MODEL_CHAIN = [
   'nvidia/nemotron-3-super-120b-a12b:free',
 ];
 
-const HEALTH_TTL_MS = 5 * 60 * 1000;
-let cached_choice: { model: string | null; at: number } | null = null;
-
-async function isAlive(model: string, apiKey: string): Promise<boolean> {
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: 'ok' }] }],
-          generationConfig: { maxOutputTokens: 1 },
-        }),
-        signal: AbortSignal.timeout(10_000),
-      }
-    );
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-async function pickGoogleModel(apiKey: string): Promise<string | null> {
-  if (cached_choice && Date.now() - cached_choice.at < HEALTH_TTL_MS) {
-    return cached_choice.model;
-  }
-  for (const model of GOOGLE_CANDIDATES) {
-    if (await isAlive(model, apiKey)) {
-      cached_choice = { model, at: Date.now() };
-      return model;
-    }
-  }
-  cached_choice = { model: null, at: Date.now() };
-  return null;
-}
-
-/** Call when a stream fails mid-flight so the next request re-probes. */
-export function invalidateModelChoice(): void {
-  cached_choice = null;
+export interface Candidate {
+  model: LanguageModel;
+  provider: 'google' | 'openrouter';
+  id: string;
 }
 
 function openRouterModel(apiKey: string): LanguageModel {
@@ -69,35 +38,52 @@ function openRouterModel(apiKey: string): LanguageModel {
   return openrouter(MODEL_CHAIN[0]);
 }
 
-export interface ResolvedModel {
-  model: LanguageModel;
-  provider: 'google' | 'openrouter';
-  id: string;
-}
-
-// Priority: visitor's own OpenRouter key > a live Google model > server
-// OpenRouter free chain.
-export async function resolveModel(userKey?: string | null): Promise<ResolvedModel> {
+/**
+ * Ordered candidates to try for one request. The caller streams with the first
+ * and moves to the next when a quota/availability error arrives before any
+ * output has been produced.
+ */
+export function buildCandidates(userKey?: string | null): Candidate[] {
+  // A visitor's own key is their quota — use it alone, no server fallbacks.
   if (userKey?.trim()) {
-    return { model: openRouterModel(userKey.trim()), provider: 'openrouter', id: MODEL_CHAIN[0] };
+    return [
+      { model: openRouterModel(userKey.trim()), provider: 'openrouter', id: MODEL_CHAIN[0] },
+    ];
   }
+
+  const candidates: Candidate[] = [];
 
   const google_key = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (google_key) {
-    const picked = await pickGoogleModel(google_key);
-    if (picked) {
-      const google = createGoogleGenerativeAI({ apiKey: google_key });
-      return { model: google(picked), provider: 'google', id: picked };
+    const google = createGoogleGenerativeAI({ apiKey: google_key });
+    for (const id of GOOGLE_CANDIDATES) {
+      candidates.push({ model: google(id), provider: 'google', id });
     }
   }
 
   if (process.env.OPENROUTER_API_KEY) {
-    return {
+    candidates.push({
       model: openRouterModel(process.env.OPENROUTER_API_KEY),
       provider: 'openrouter',
       id: MODEL_CHAIN[0],
-    };
+    });
   }
 
-  throw new Error('missing_api_key');
+  return candidates;
+}
+
+/** True when the error means "this model is spent/unavailable — try another". */
+export function isFailoverError(error: unknown): boolean {
+  const err = error as { statusCode?: number; message?: string } | undefined;
+  const text = `${err?.message ?? ''} ${String(error)}`.toLowerCase();
+  return (
+    err?.statusCode === 429 ||
+    err?.statusCode === 503 ||
+    err?.statusCode === 502 ||
+    text.includes('quota') ||
+    text.includes('rate limit') ||
+    text.includes('resourceexhausted') ||
+    text.includes('overloaded') ||
+    text.includes('unavailable')
+  );
 }
