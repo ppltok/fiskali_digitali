@@ -1,16 +1,13 @@
 import type { Metadata } from 'next';
-import { Suez_One, Heebo, IBM_Plex_Mono } from 'next/font/google';
+import { IBM_Plex_Sans_Hebrew, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 
-const suez = Suez_One({
-  weight: '400',
+// alenu.org uses IBM Plex Sans Hebrew for body copy; their display face
+// (COLBO) is proprietary, so headlines use Plex Hebrew at heavy weights.
+const plex_hebrew = IBM_Plex_Sans_Hebrew({
+  weight: ['400', '500', '600', '700'],
   subsets: ['hebrew', 'latin'],
-  variable: '--font-suez',
-});
-
-const heebo = Heebo({
-  subsets: ['hebrew', 'latin'],
-  variable: '--font-heebo',
+  variable: '--font-plex-hebrew',
 });
 
 const plex_mono = IBM_Plex_Mono({
@@ -20,20 +17,20 @@ const plex_mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'פיסקלי דיגיטלי — שיחה עם תקציב המדינה',
+  title: 'דברו עם התקציב | עלינו',
   description:
-    'שאלו כל שאלה על תקציב מדינת ישראל בעברית פשוטה, וקבלו תשובות מגובות בנתונים חיים ממפתח התקציב — עם תרשימים, מקורות ושקיפות מלאה.',
+    'אי אפשר לתקן את מה שלא רואים. שאלו כל שאלה על תקציב מדינת ישראל בעברית פשוטה, וקבלו תשובה מגובה בנתונים חיים ממפתח התקציב — עם מקורות, שאילתות גלויות ותרשימים. מערכת של תנועת עלינו.',
+  metadataBase: new URL('https://fiskalidigitali.vercel.app'),
+  openGraph: {
+    title: 'דברו עם התקציב | עלינו',
+    description:
+      'אי אפשר לתקן את מה שלא רואים — שאלו כל שאלה על תקציב המדינה וקבלו תשובה מגובה בנתונים חיים.',
+    locale: 'he_IL',
+    type: 'website',
+  },
   icons: {
-    icon: [
-      {
-        url:
-          'data:image/svg+xml,' +
-          encodeURIComponent(
-            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%230c6b5a"/><text x="50" y="72" font-size="62" text-anchor="middle" fill="%23f6f1e7" font-family="serif">₪</text></svg>'
-          ),
-        type: 'image/svg+xml',
-      },
-    ],
+    icon: [{ url: '/alenu_mark.svg', type: 'image/svg+xml' }],
+    apple: [{ url: '/alenu_mark.svg' }],
   },
 };
 
@@ -42,9 +39,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="he" dir="rtl" suppressHydrationWarning>
-      <body
-        className={`${suez.variable} ${heebo.variable} ${plex_mono.variable} antialiased`}
-      >
+      <body className={`${plex_hebrew.variable} ${plex_mono.variable} antialiased`}>
         {children}
       </body>
     </html>

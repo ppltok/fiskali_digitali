@@ -4,7 +4,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import type { UIMessage } from 'ai';
-import { Landmark, Moon, Sun, ArrowDown } from 'lucide-react';
+import Image from 'next/image';
+import { Moon, Sun, ArrowDown } from 'lucide-react';
 import MessageBubble from './message_bubble';
 import MessageInput from './message_input';
 import StarterQuestions from './starter_questions';
@@ -157,23 +158,24 @@ function ChatView({
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-40 pt-6">
         {empty ? (
           <div className="mt-8 sm:mt-16">
-            <p className="rise-in mb-2 text-xs font-medium uppercase tracking-widest text-accent">
-              נתונים חיים · 1997–2026
+            <p className="rise-in mb-3 inline-flex items-center gap-2 rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-strong">
+              רדיקלי, לא קיצוני · תנועת עלינו
             </p>
             <h1
-              className="rise-in font-display text-4xl leading-tight text-ink sm:text-5xl"
+              className="rise-in font-display text-4xl font-bold leading-[1.15] text-ink sm:text-5xl"
               style={{ animationDelay: '60ms' }}
             >
-              למה הולך הכסף
+              אי אפשר לתקן
               <br />
-              <span className="text-accent">שלך?</span>
+              <span className="text-accent">את מה שלא רואים.</span>
             </h1>
             <p
-              className="rise-in mt-4 max-w-xl text-[15px] leading-relaxed text-ink-soft"
+              className="rise-in mt-5 max-w-xl text-[15px] leading-relaxed text-ink-soft"
               style={{ animationDelay: '120ms' }}
             >
-              שאלו כל שאלה על תקציב מדינת ישראל — בעברית פשוטה. התשובות מגיעות ישירות
-              ממסד הנתונים הפתוח של מפתח התקציב, עם מקורות, שאילתות שקופות ותרשימים.
+              שינוי מן היסוד מתחיל בהבנה של המספרים. שאלו כאן כל שאלה על תקציב מדינת
+              ישראל — בעברית פשוטה — וקבלו תשובה מגובה בנתונים חיים ממפתח התקציב, עם
+              מקורות, שאילתות גלויות ותרשימים. בלי פרשנות, בלי סיסמאות. זה עלינו.
             </p>
             <div className="mt-8">
               <StarterQuestions onSelect={ask} />
@@ -218,9 +220,29 @@ function ChatView({
             onStop={stop}
             busy={busy}
           />
-          <p className="mt-2 text-center text-[11px] text-ink-faint">
-            הנתונים ממפתח התקציב (obudget.org) · תשובות מופקות בידי מודל שפה — אמתו נתונים קריטיים במקור
-          </p>
+          <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-[11px] text-ink-faint">
+            <span>מערכת של</span>
+            <a
+              href="https://www.alenu.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="תנועת עלינו"
+              className="transition-opacity hover:opacity-70"
+            >
+              <Image
+                src="/alenu_logo.svg"
+                alt="עלינו"
+                width={58}
+                height={25}
+                className="h-4 w-auto translate-y-px"
+              />
+            </a>
+            <span aria-hidden>·</span>
+            <span>
+              נתונים ממפתח התקציב (obudget.org) · תשובות מופקות בידי מודל שפה — אמתו
+              נתונים קריטיים במקור
+            </span>
+          </div>
         </div>
       </div>
     </>
@@ -265,17 +287,28 @@ export default function ChatContainer() {
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 z-20 border-b border-hairline bg-paper/85 backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2.5">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-accent text-white">
-              <Landmark className="size-4.5" />
-            </span>
+          <a
+            href="https://www.alenu.org/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 transition-opacity hover:opacity-80"
+            aria-label="עלינו — דברו עם התקציב"
+          >
+            <Image
+              src="/alenu_mark.svg"
+              alt=""
+              width={32}
+              height={32}
+              className="size-8"
+              priority
+            />
             <div className="leading-tight">
-              <p className="font-display text-lg text-ink">פיסקלי דיגיטלי</p>
+              <p className="font-display text-lg font-bold text-ink">דברו עם התקציב</p>
               <p className="hidden text-[11px] text-ink-faint sm:block">
-                שיחה חיה עם תקציב המדינה · מפתח התקציב
+                מערכת של תנועת עלינו · נתונים ממפתח התקציב
               </p>
             </div>
-          </div>
+          </a>
           <div className="flex items-center gap-1.5">
             <ConversationSidebar
               conversations={conversations}

@@ -1,77 +1,78 @@
 @import 'tailwindcss';
 
-/* ── פיסקלי דיגיטלי · "fiscal broadsheet" theme ─────────────────────────────
-   Warm paper + ink editorial palette with a fiscal-teal accent.
-   Light is the default; dark follows the system and a manual toggle.      */
+/* ── עלינו · דברו עם התקציב ─────────────────────────────────────────────────
+   Brand palette taken from alenu.org: #5674FF on white, pink #FFB1C1 as the
+   secondary accent, IBM Plex Sans Hebrew as the typeface.
+   Light is the default; dark follows the system and a manual toggle.       */
 
 :root {
-  --paper: #f6f1e7;
-  --surface: #fdfaf3;
+  --paper: #ffffff;
+  --surface: #f5f7ff;
   --surface-raised: #ffffff;
-  --ink: #1d1a14;
-  --ink-soft: #52493b;
-  --ink-faint: #8b8070;
-  --hairline: #e3d9c6;
-  --hairline-strong: #cfc2a9;
-  --accent: #0c6b5a;
-  --accent-soft: #e0efe9;
-  --accent-strong: #084d41;
-  --amber: #b45309;
-  --amber-soft: #f7ead8;
-  --negative: #a33324;
-  --chart-1: #1baf7a;
+  --ink: #12151f;
+  --ink-soft: #454b60;
+  --ink-faint: #7d849c;
+  --hairline: #e3e7f5;
+  --hairline-strong: #c9d0ea;
+  --accent: #5674ff;
+  --accent-soft: #ebefff;
+  --accent-strong: #3450db;
+  --amber: #c2410c;
+  --amber-soft: #ffe9e3;
+  --negative: #c02637;
+  --pink: #ffb1c1;
+  --chart-1: #5674ff;
   --chart-2: #eb6834;
-  --chart-3: #2a78d6;
+  --chart-3: #1baf7a;
   --chart-4: #eda100;
   --chart-5: #e87ba4;
-  --grain-opacity: 0.35;
 }
 
 :root[data-theme='dark'] {
-  --paper: #161410;
-  --surface: #1e1b15;
-  --surface-raised: #26221a;
-  --ink: #ece5d4;
-  --ink-soft: #b3a988;
-  --ink-faint: #7d745f;
-  --hairline: #2f2a1f;
-  --hairline-strong: #453e2d;
-  --accent: #3fa88f;
-  --accent-soft: #12352c;
-  --accent-strong: #6cc4ab;
-  --amber: #d98324;
-  --amber-soft: #33270f;
-  --negative: #d06a58;
-  --chart-1: #199e70;
+  --paper: #0e1018;
+  --surface: #171a26;
+  --surface-raised: #1e2231;
+  --ink: #edf0fa;
+  --ink-soft: #b4bbd2;
+  --ink-faint: #7b839c;
+  --hairline: #262b3b;
+  --hairline-strong: #39405a;
+  --accent: #7f95ff;
+  --accent-soft: #1d2444;
+  --accent-strong: #a3b3ff;
+  --amber: #e2703a;
+  --amber-soft: #33200f;
+  --negative: #e0697a;
+  --pink: #ffb1c1;
+  --chart-1: #7189ff;
   --chart-2: #d95926;
-  --chart-3: #3987e5;
+  --chart-3: #199e70;
   --chart-4: #c98500;
   --chart-5: #d55181;
-  --grain-opacity: 0.25;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --paper: #161410;
-    --surface: #1e1b15;
-    --surface-raised: #26221a;
-    --ink: #ece5d4;
-    --ink-soft: #b3a988;
-    --ink-faint: #7d745f;
-    --hairline: #2f2a1f;
-    --hairline-strong: #453e2d;
-    --accent: #3fa88f;
-    --accent-soft: #12352c;
-    --accent-strong: #6cc4ab;
-    --amber: #d98324;
-    --amber-soft: #33270f;
-    --negative: #d06a58;
-    --chart-1: #199e70;
+    --paper: #0e1018;
+    --surface: #171a26;
+    --surface-raised: #1e2231;
+    --ink: #edf0fa;
+    --ink-soft: #b4bbd2;
+    --ink-faint: #7b839c;
+    --hairline: #262b3b;
+    --hairline-strong: #39405a;
+    --accent: #7f95ff;
+    --accent-soft: #1d2444;
+    --accent-strong: #a3b3ff;
+    --amber: #e2703a;
+    --amber-soft: #33200f;
+    --negative: #e0697a;
+    --pink: #ffb1c1;
+    --chart-1: #7189ff;
     --chart-2: #d95926;
-    --chart-3: #3987e5;
+    --chart-3: #199e70;
     --chart-4: #c98500;
     --chart-5: #d55181;
-    --grain-opacity: 0.25;
   }
 }
 
@@ -90,38 +91,33 @@
   --color-amber: var(--amber);
   --color-amber-soft: var(--amber-soft);
   --color-negative: var(--negative);
-  --font-display: var(--font-suez), serif;
-  --font-body: var(--font-heebo), sans-serif;
+  --color-pink: var(--pink);
+  --font-display: var(--font-plex-hebrew), sans-serif;
+  --font-body: var(--font-plex-hebrew), sans-serif;
   --font-figures: var(--font-plex-mono), monospace;
 }
 
 body {
   background-color: var(--paper);
   color: var(--ink);
-  font-family: var(--font-heebo), sans-serif;
-  /* Subtle paper grain — pure CSS, no assets. */
+  font-family: var(--font-plex-hebrew), sans-serif;
+  /* Soft brand-blue wash at the top of the page — no assets, no noise. */
   background-image: radial-gradient(
-      ellipse at 20% -10%,
-      color-mix(in oklab, var(--accent) 4%, transparent),
-      transparent 55%
-    ),
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      color-mix(in oklab, var(--ink) 1.2%, transparent) 3px
-    );
+    ellipse 120% 60% at 50% -10%,
+    color-mix(in oklab, var(--accent) 10%, transparent),
+    transparent 70%
+  );
   background-attachment: fixed;
 }
 
 ::selection {
-  background: color-mix(in oklab, var(--accent) 25%, transparent);
+  background: color-mix(in oklab, var(--accent) 22%, transparent);
 }
 
 /* Figures: shekel amounts get tabular mono digits. Hebrew words inside fall
-   back to Heebo; digits stay weak-directional so RTL flow is preserved. */
+   back to the body face; digits stay weak-directional so RTL flow holds. */
 .figure {
-  font-family: var(--font-plex-mono), var(--font-heebo), monospace;
+  font-family: var(--font-plex-mono), var(--font-plex-hebrew), monospace;
   font-variant-numeric: tabular-nums;
 }
 
@@ -158,7 +154,7 @@ body {
   animation: rise-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Thin, unobtrusive scrollbars that match the paper. */
+/* Thin, unobtrusive scrollbars. */
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--hairline-strong) transparent;
