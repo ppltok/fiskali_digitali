@@ -15,6 +15,32 @@ import { mockChatResponse } from '@/lib/mock_llm';
 
 export const maxDuration = 300;
 
+// Turn a raw provider error into something a Hebrew-speaking visitor can act
+// on. The `[code]` prefix lets the UI pick tone/icon without parsing prose.
+function describeError(error: unknown): string {
+  const err = error as { message?: string; statusCode?: number; name?: string } | undefined;
+  const text = `${err?.name ?? ''} ${err?.message ?? ''} ${String(error)}`.toLowerCase();
+
+  if (text.includes('quota') || text.includes('429') || text.includes('rate limit')) {
+    return '[quota] המכסה החינמית של המודלים נגמרה לרגע זה. אפשר לנסות שוב בעוד דקה, או להוסיף מפתח OpenRouter אישי בהגדרות (חינמי, דקה להפיק) ולהמשיך מיד.';
+  }
+  if (
+    text.includes('unavailable') ||
+    text.includes('overloaded') ||
+    text.includes('503') ||
+    text.includes('502')
+  ) {
+    return '[busy] שרתי המודל החינמיים עמוסים כרגע. נסו שוב בעוד רגע — בדרך כלל זה נפתר מיד.';
+  }
+  if (text.includes('timed out') || text.includes('timeout') || text.includes('aborted')) {
+    return '[timeout] החיפוש בנתונים ארך יותר מדי זמן. נסו לצמצם את השאלה (למשל שנה אחת במקום עשור) ולנסות שוב.';
+  }
+  if (text.includes('invalid') || text.includes('schema') || text.includes('parse')) {
+    return '[tool] המודל ניסח שאילתה שגויה מול מפתח התקציב. נסו לנסח את השאלה קצת אחרת.';
+  }
+  return '[error] אירעה שגיאה בעיבוד השאלה. אפשר לנסות שוב — ואם זה חוזר, נסחו את השאלה מחדש.';
+}
+
 // Best-effort per-instance throttle (serverless memory is per-instance — this
 // is a speed bump, not a wall; the real protection is the OpenRouter quota).
 const ip_hits = new Map<string, { count: number; window_start: number }>();
@@ -108,40 +134,53 @@ export async function POST(req: Request) {
           },
         });
 
+        // toUIMessageStream converts errors into an `error` chunk instead of
+        // throwing, so failover has to inspect chunks rather than catch.
+        let stream_error: unknown;
         try {
-          for await (const chunk of result.toUIMessageStream({ sendStart: i === 0 })) {
+          for await (const chunk of result.toUIMessageStream({
+            sendStart: i === 0,
+            onError: (error) => {
+              stream_error = error;
+              return describeError(error);
+            },
+          })) {
+            if (chunk.type === 'error') {
+              stream_error ??= new Error(chunk.errorText);
+              break;
+            }
             writer.write(chunk);
-            committed = true;
+            if (chunk.type !== 'start' && chunk.type !== 'start-step') committed = true;
           }
-          return;
         } catch (error) {
-          last_error = error;
-          const can_retry = !committed && isFailoverError(error) && i < candidates.length - 1;
-          console.error(
-            `[chat] ${candidate.provider}/${candidate.id} failed ` +
-              `(committed=${committed}, failover=${can_retry}):`,
-            error
-          );
-          if (!can_retry) throw error;
+          stream_error = error;
+        }
+
+        if (!stream_error) return;
+
+        last_error = stream_error;
+        const can_retry = !committed && isFailoverError(stream_error) && i < candidates.length - 1;
+        console.error(
+          `[chat] ${candidate.provider}/${candidate.id} failed ` +
+            `(committed=${committed}, failover=${can_retry}):`,
+          stream_error
+        );
+        if (!can_retry) {
+          writer.write({ type: 'error', errorText: describeError(stream_error) });
+          return;
         }
       }
 
-      throw last_error ?? new Error('no_candidates');
+      if (last_error) {
+        writer.write({ type: 'error', errorText: describeError(last_error) });
+        return;
+      }
+      writer.write({ type: 'error', errorText: describeError(new Error('no_candidates')) });
     },
     onFinish: async () => {
       await session?.close();
     },
-    onError: (error) => {
-      const err = error as { message?: string; statusCode?: number };
-      const text = `${err?.message ?? ''} ${String(error)}`.toLowerCase();
-      if (text.includes('quota') || text.includes('429') || text.includes('rate limit')) {
-        return 'כל המכסות החינמיות אזלו לרגע זה. אפשר להוסיף מפתח OpenRouter אישי בהגדרות (חינמי, דקה להפיק) ולהמשיך מיד — או לנסות שוב מאוחר יותר.';
-      }
-      if (text.includes('unavailable') || text.includes('overloaded') || text.includes('503')) {
-        return 'שרתי המודל החינמיים עמוסים כרגע. נסו שוב בעוד רגע.';
-      }
-      return 'אירעה שגיאה בעיבוד השאלה. נסו לנסח אותה מחדש.';
-    },
+    onError: (error) => describeError(error),
   });
 
   return createUIMessageStreamResponse({ stream });

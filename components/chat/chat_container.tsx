@@ -5,7 +5,7 @@ import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import type { UIMessage } from 'ai';
 import Image from 'next/image';
-import { Moon, Sun, ArrowDown } from 'lucide-react';
+import { Moon, Sun, ArrowDown, RotateCcw, AlertTriangle, Hourglass } from 'lucide-react';
 import MessageBubble from './message_bubble';
 import MessageInput from './message_input';
 import StarterQuestions from './starter_questions';
@@ -45,6 +45,62 @@ function useThemeToggle() {
   return toggle;
 }
 
+// Server messages arrive as "[code] טקסט". Split the code out so the card can
+// choose its tone, and always offer a way forward.
+const ERROR_TONE: Record<string, { icon: typeof AlertTriangle; title: string }> = {
+  quota: { icon: Hourglass, title: 'המכסה החינמית נגמרה לרגע' },
+  busy: { icon: Hourglass, title: 'השרתים עמוסים' },
+  timeout: { icon: Hourglass, title: 'השאלה ארכה יותר מדי' },
+  tool: { icon: AlertTriangle, title: 'השאילתה לא הצליחה' },
+  error: { icon: AlertTriangle, title: 'משהו השתבש' },
+};
+
+function ErrorCard({
+  message,
+  busy,
+  onRetry,
+}: {
+  message?: string;
+  busy: boolean;
+  onRetry: () => void;
+}) {
+  const raw = message?.trim() || '[error]';
+  const match = /^\[(\w+)\]\s*([\s\S]*)$/.exec(raw);
+  const code = match?.[1] ?? 'error';
+  const text = match?.[2]?.trim() || 'אירעה שגיאה. אפשר לנסות שוב.';
+  const tone = ERROR_TONE[code] ?? ERROR_TONE.error;
+  const Icon = tone.icon;
+
+  return (
+    <div className="rise-in mt-3 rounded-xl border border-hairline-strong bg-surface px-4 py-3.5">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-amber-soft text-amber">
+          <Icon className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-display text-sm font-semibold text-ink">{tone.title}</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">{text}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <button
+              onClick={onRetry}
+              disabled={busy}
+              className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-accent-strong disabled:opacity-50"
+            >
+              <RotateCcw className="size-3.5" />
+              נסו שוב
+            </button>
+            {code === 'quota' && (
+              <span className="text-[12px] text-ink-faint">
+                טיפ: מפתח אישי בהגדרות מבטל את ההמתנה לגמרי
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // The first stream chunk can take a while when the free-tier per-minute quota
 // is busy (the server waits it out with backoff). Be honest about the wait
 // instead of looking hung.
@@ -81,7 +137,7 @@ function ChatView({
   const [stuck, setStuck] = useState(true);
   const stuck_ref = useRef(true);
 
-  const { messages, sendMessage, status, stop, error } = useChat({
+  const { messages, sendMessage, status, stop, error, regenerate, clearError } = useChat({
     id: convo_id,
     messages: initial_messages,
     transport: new DefaultChatTransport({
@@ -194,9 +250,14 @@ function ChatView({
             ))}
             {status === 'submitted' && <PendingIndicator />}
             {error && (
-              <div className="rise-in mt-3 rounded-xl border border-negative/30 bg-negative/5 px-4 py-3 text-sm text-negative">
-                {error.message || 'אירעה שגיאה. נסו שוב.'}
-              </div>
+              <ErrorCard
+                message={error.message}
+                busy={busy}
+                onRetry={() => {
+                  clearError();
+                  regenerate();
+                }}
+              />
             )}
           </div>
         )}
